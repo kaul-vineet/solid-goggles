@@ -260,6 +260,328 @@ mdm-project/
 
 ---
 
+## Copilot Studio Setup
+*Configure your agent so the Android app can talk to it*
+
+This section covers everything you need to do inside Copilot Studio before the app can connect.
+
+---
+
+### Step CS-1 — Create or open your agent
+
+- Go to `https://copilotstudio.microsoft.com`
+- Sign in with your tenant admin or maker account
+- Either open an existing agent or click **+ Create** → **New agent**
+- Give it a name e.g. `MDM Test Agent`
+
+---
+
+### Step CS-2 — Enable Microsoft (AAD) authentication
+
+This is the most important step. The Android app gets a token from Entra ID and passes it to the agent. For that to work, the agent must be configured to accept AAD tokens.
+
+- Inside your agent click **Settings** (top right gear icon)
+- Click **Security** in the left panel
+- Click **Authentication**
+- Select **Authenticate with Microsoft**
+- Click **Save**
+
+> If you leave authentication as "No authentication" the app token will be ignored and anyone can talk to the agent — do not do this for a real test.
+
+After saving you will see two values appear on this screen — copy both and save in Notepad:
+- **App ID** (this is the bot's Entra app registration ID — used in `MsalClient.kt`)
+- **Tenant ID** (should match your tenant)
+
+---
+
+### Step CS-3 — Note the Environment ID and Schema name
+
+These go into `webchat/src/chat.js`.
+
+- Still in **Settings** → click the **About** tab
+- Copy and save:
+  - **Environment ID** (a GUID like `abc12345-0000-...`)
+  - **Schema name** (something like `cr123_mdmTestAgent`)
+
+---
+
+### Step CS-4 — Configure the agent's scope in Entra
+
+The Android app requests a token with scope `api://<bot-app-id>/.default`. For Entra to honour this, the bot's app registration must expose that scope.
+
+- Go to `https://entra.microsoft.com`
+- **Applications** → **App registrations** → search for the bot's App ID (from Step CS-2)
+- Click **Expose an API** in the left menu
+- If no Application ID URI is set, click **Add** next to it — accept the default `api://<app-id>`
+- Click **+ Add a scope**
+  - Scope name: `user_impersonation`
+  - Who can consent: **Admins and users**
+  - Display name / description: fill in anything e.g. `Access Copilot agent`
+  - Click **Add scope**
+- Now go back to **your MDM Test App** registration (the one you created in Step 3 of Part A)
+  - **API permissions** → **+ Add a permission** → **My APIs**
+  - Find the bot app → tick `user_impersonation` → **Add permissions**
+  - Click **Grant admin consent**
+
+---
+
+### Step CS-5 — Add a topic to test with
+
+So you have something to talk to when you run the app:
+
+- In your agent click **Topics** → **+ Add a topic** → **From blank**
+- Name it `Hello`
+- In the **Trigger phrases** box add: `hi`, `hello`, `test`
+- Add a **Message** node with text: `Hi! I am working. The MAM flow succeeded.`
+- Click **Save**
+
+---
+
+### Step CS-6 — Publish the agent
+
+The agent must be published before the Android app can reach it. Unpublished agents are only accessible inside Copilot Studio itself.
+
+- Click **Publish** (top right)
+- Click **Publish** again on the confirmation screen
+- Wait ~1 minute for publishing to complete
+
+---
+
+### Step CS-7 — Enable the Direct Line channel
+
+The M365 `CopilotStudioClient` connects via the Direct Line channel.
+
+- In your agent go to **Settings** → **Channels**
+- Find **Mobile app** or **Direct Line** → click to open
+- Make sure it is **enabled**
+- No extra config needed — the SDK handles the connection using the token you provide
+
+---
+
+### Step CS-8 — Verify the full config checklist
+
+Before building the Android app confirm you have all four values:
+
+| Value | Where to find it | Goes into |
+|---|---|---|
+| Bot App ID | Copilot Studio → Settings → Security → Authentication | `MsalClient.kt` copilotScopes |
+| Environment ID | Copilot Studio → Settings → About | `webchat/src/chat.js` |
+| Schema name | Copilot Studio → Settings → About | `webchat/src/chat.js` |
+| Tenant ID | Entra → Directory (tenant) ID | `msal_config.json` + `chat.js` |
+
+---
+
+### How the connection works end to end
+
+```
+Android app
+  → MSAL acquires token with scope api://<bot-app-id>/.default
+  → token injected into WebView as window.__authToken
+  → CopilotStudioClient.createConversation() called
+      → sends token in Authorization header to Copilot Studio
+      → Copilot Studio validates token against Entra
+      → conversation started
+  → sendMessage("hi") → agent replies with "Hi! I am working..."
+```
+
+---
+
+## Step-by-step testing guide (with a real device and tenant)
+
+This walks through the complete setup from scratch.
+
+---
+
+### Part A — Entra ID Setup
+*Give your app an identity card*
+
+**Step 1 — Open Entra admin center**
+
+Go to `https://entra.microsoft.com` and sign in with your tenant admin account.
+
+**Step 2 — Create an app registration**
+
+- Left menu → **Applications** → **App registrations**
+- Click **+ New registration**
+- Name: `MDM Test App`
+- Supported account types: `Accounts in this organizational directory only`
+- Redirect URI: leave blank for now
+- Click **Register**
+
+**Step 3 — Copy the important IDs**
+
+On the registration page, copy and save in Notepad:
+- **Application (client) ID**
+- **Directory (tenant) ID**
+
+**Step 4 — Add API permissions**
+
+- Click **API permissions** in the left menu
+- Click **+ Add a permission** → **APIs my organization uses**
+- Search for `Microsoft Mobile Application Management`
+- Select **Delegated permissions** → tick `DeviceManagementManagedApps.ReadWrite`
+- Click **Add permissions**
+- Click **Grant admin consent for [your tenant]** → Yes
+
+**Step 5 — Find your Copilot bot app ID**
+
+- Go to `https://copilotstudio.microsoft.com`
+- Open your agent → **Settings** → **Security** → **Authentication**
+- Confirm it says **Authenticate with Microsoft**
+- Copy the **App ID** shown — save in Notepad
+
+---
+
+### Part B — Intune Setup
+*Tell Intune to protect your app*
+
+**Step 6 — Open Intune admin center**
+
+Go to `https://intune.microsoft.com` and sign in with your admin account.
+
+**Step 7 — Create an App Protection Policy**
+
+- Click **Apps** → **App protection policies** → **+ Create policy** → **Android**
+- Name: `MDM Test Policy`
+- Click **Next**
+- On the **Apps** page → click **+ Select custom apps**
+- Enter package name: `com.contoso.mdmtest` → Add
+- Click **Next** through remaining pages (leave defaults)
+- On **Assignments** page → **+ Add groups** → add your test user or group
+- Click **Next** → **Create**
+
+> Wait 15–30 minutes after creating the policy before testing. Intune needs time to activate it.
+
+---
+
+### Part C — Build and run the app
+
+**Step 8 — Install Android Studio**
+
+Download from `https://developer.android.com/studio` and install it like any normal Windows app.
+
+**Step 9 — Open the project**
+
+- Open Android Studio → click **Open**
+- Navigate to: `C:\Users\vineetkaul\OneDrive - Microsoft\POWER CAT\BFL\mdm-project`
+- Click OK and wait for "Gradle sync finished" in the bottom bar
+
+**Step 10 — Get your app's signature**
+
+Open the **Terminal** tab at the bottom of Android Studio and run:
+
+```bash
+keytool -exportcert -alias androiddebugkey \
+  -keystore "%USERPROFILE%\.android\debug.keystore" \
+  -storepass android | openssl sha1 -binary | openssl base64
+```
+
+You'll get a short string like `abc123XYZ==` — copy it and save in Notepad.
+
+**Step 11 — Fill in `msal_config.json`**
+
+In Android Studio open: `app > src > main > res > raw > msal_config.json`
+
+```json
+{
+  "client_id": "← Application (client) ID from Step 3",
+  "redirect_uri": "msauth://com.contoso.mdmtest/← signature from Step 10",
+  "broker_redirect_uri_registered": true,
+  "client_capabilities": ["ProtApp"],
+  "account_mode": "SINGLE",
+  "authorities": [{
+    "type": "AAD",
+    "audience": {
+      "type": "AzureADMyOrg",
+      "tenant_id": "← Directory (tenant) ID from Step 3"
+    }
+  }]
+}
+```
+
+**Step 12 — Fill in the Copilot scope**
+
+Open: `app > src > main > java > com > contoso > mdmtest > MsalClient.kt`
+
+Find and update:
+```kotlin
+val copilotScopes = listOf("api://YOUR_COPILOT_BOT_APP_ID/.default")
+```
+Replace `YOUR_COPILOT_BOT_APP_ID` with the bot App ID from Step 5.
+
+**Step 13 — Fill in the chat config**
+
+Open: `webchat > src > chat.js`
+
+Find and update:
+```js
+const COPILOT_CONFIG = {
+    environmentId: "← from Copilot Studio > Settings > About",
+    agentIdentifier: "← schema name from Copilot Studio > Settings > About",
+    tenantId: "← Directory (tenant) ID from Step 3",
+};
+```
+
+**Step 14 — Update AndroidManifest with the signature**
+
+Open: `app > src > main > AndroidManifest.xml`
+
+Find this line:
+```xml
+android:path="/YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE"
+```
+Replace `YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE` with your signature from Step 10. Keep the `/` before it.
+
+**Step 15 — Add the redirect URI to Entra**
+
+Back in Entra → your app registration → **Authentication**:
+- Click **+ Add a platform** → **Android**
+- Package name: `com.contoso.mdmtest`
+- Signature hash: paste signature from Step 10
+- Click **Configure**
+
+**Step 16 — Build the chat bundle**
+
+In Android Studio's Terminal tab:
+```bash
+cd webchat
+npm install
+npm run build
+```
+
+This creates `app/src/main/assets/chat.bundle.js`. You must do this before running the app.
+
+**Step 17 — Prepare your Android device**
+
+- Connect the device to your PC via USB
+- On the device: **Settings** → **About phone** → tap **Build number** 7 times (unlocks Developer Options)
+- **Settings** → **Developer options** → turn on **USB debugging**
+- A prompt appears on the device asking to allow your PC — tap **Allow**
+
+**Step 18 — Install Company Portal on the device**
+
+On the device:
+- Open **Play Store** → search **Intune Company Portal** → Install
+- You do not need to sign into it — just having it installed is enough
+
+**Step 19 — Run the app**
+
+In Android Studio:
+- Your device should appear in the device dropdown at the top (next to the green play button)
+- Click the green **▶ Run** button
+- The app builds and installs on your device automatically
+
+**Step 20 — Test the flow**
+
+When the app opens on the device:
+1. A Microsoft login screen appears → sign in with your test user
+2. If the Intune policy is active, Company Portal opens briefly for remediation — let it complete
+3. The chat screen appears — type a message and the Copilot agent should respond
+
+**If something goes wrong:** in Android Studio click the **Logcat** tab at the bottom, filter by `MdmTest` — every step in the app is logged there.
+
+---
+
 ## References
 
 - [Intune MAM SDK Android — Phase 2 (MSAL)](https://learn.microsoft.com/en-us/intune/intune-service/developer/app-sdk-android-phase2)
