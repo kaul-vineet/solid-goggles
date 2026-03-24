@@ -582,6 +582,92 @@ When the app opens on the device:
 
 ---
 
+## Testing with an Android Emulator
+
+You can test the full flow without a physical device using the Android Studio emulator.
+
+---
+
+### Step E-1 — Open Device Manager
+
+In Android Studio: **View** → **Tool Windows** → **Device Manager** → click **+** → **Create Virtual Device**
+
+---
+
+### Step E-2 — Pick the hardware
+
+Select **Pixel 6** from the list → click **Next**
+
+---
+
+### Step E-3 — Pick the system image — critical
+
+On the system image screen look at the **Target** column:
+
+- ✅ Pick one that says **Google Play** — e.g. `API 34 — Google Play`
+- ❌ Do NOT pick plain "Google APIs" or "AOSP" — Company Portal won't install properly on those
+
+If you don't see a Google Play image, click the **download arrow** next to it and wait (~1–2 GB download).
+
+Click **Next** → **Finish**
+
+---
+
+### Step E-4 — Boot the emulator
+
+In Device Manager click the **▶ play button** next to your new device. Wait for it to fully boot to the Android home screen. First boot takes 2–3 minutes.
+
+---
+
+### Step E-5 — Sign into Google Play on the emulator
+
+Company Portal is distributed via Play Store — the emulator needs a Google account to install it.
+
+- Open the **Play Store** app on the emulator
+- Sign in with any personal Google account (just for Play Store access — not your tenant account)
+
+---
+
+### Step E-6 — Install Company Portal
+
+- In Play Store search: **Intune Company Portal**
+- Install it
+- Do not open or sign into it
+
+---
+
+### Step E-7 — Run the app
+
+- In Android Studio the emulator appears in the device dropdown at the top
+- Click **▶ Run**
+- The app installs and launches on the emulator
+- Sign in with your test user — the MAM flow runs exactly as it would on a physical device
+
+---
+
+### Emulator limitations
+
+| Limitation | What to do |
+|---|---|
+| Slower than a real device | MAM enrollment and token flows may take a few extra seconds — just wait |
+| Clock drift causes token expiry errors | Emulator **Settings** → **Date & Time** → enable **Automatic date & time** |
+| No biometrics | If Intune policy requires device lock, set a PIN in emulator **Settings** → **Security** |
+| Google Play image boots slowly | Normal — wait for full boot before running the app |
+
+---
+
+### If your Intune policy blocks the emulator
+
+Some policy access requirements (minimum OS version, device lock) can fail on an emulator. For testing, temporarily relax them:
+
+- Intune admin center → your policy → **Access requirements**
+- Set **PIN for access** → **Not required**
+- Set **Minimum OS version** → leave blank
+
+This is fine for a test policy — tighten it again before production.
+
+---
+
 ## References
 
 - [Intune MAM SDK Android — Phase 2 (MSAL)](https://learn.microsoft.com/en-us/intune/intune-service/developer/app-sdk-android-phase2)
