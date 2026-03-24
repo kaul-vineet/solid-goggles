@@ -1,0 +1,29 @@
+# Session log — local only
+SESSION_LOG.md
+
+# JS build output
+webchat/node_modules/
+app/src/main/assets/chat.bundle.js
+
+# Android build outputs
+*.apk
+*.aab
+*.class
+build/
+app/build/
+.gradle/
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Credentials — never commit these
+local.env
+*.keystore
+!debug.keystore
