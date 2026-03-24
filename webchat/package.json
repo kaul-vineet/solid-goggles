@@ -1,0 +1,16 @@
+{
+  "name": "mdm-webchat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chat UI for MAM test — uses M365 CopilotStudioClient, bundled for WebView",
+  "scripts": {
+    "build": "esbuild src/chat.js --bundle --outfile=../app/src/main/assets/chat.bundle.js --platform=browser --target=es2017",
+    "watch": "esbuild src/chat.js --bundle --outfile=../app/src/main/assets/chat.bundle.js --platform=browser --target=es2017 --watch"
+  },
+  "dependencies": {
+    "@microsoft/agents-copilotstudio-client": "latest"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}

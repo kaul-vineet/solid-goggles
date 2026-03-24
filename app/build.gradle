@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    // MAM Gradle plugin — must come AFTER android plugin
+    // Performs bytecode replacement: Activity→MAMActivity, Service→MAMService, etc.
+    id 'com.microsoft.intune.mam'
+}
+
+android {
+    namespace 'com.contoso.mdmtest'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.contoso.mdmtest"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    // Required: allow assets folder to be served in WebView
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/assets']
+        }
+    }
+}
+
+intunemam {
+    // Classes/packages to exclude from MAM bytecode replacement
+    excludeProjects = []
+}
+
+dependencies {
+    // MSAL for Android — brokered auth
+    implementation 'com.microsoft.identity.client:msal:5.3.0'
+
+    // Intune MAM SDK
+    implementation 'com.microsoft.intune.mam:intune-mam:10.4.0'
+
+    // Minimal UI
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+}

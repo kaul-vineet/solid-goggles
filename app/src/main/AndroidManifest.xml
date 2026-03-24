@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:name=".App"
+        android:allowBackup="false"
+        android:label="MAM Test"
+        android:theme="@style/Theme.MaterialComponents.Light.NoActionBar"
+        android:usesCleartextTraffic="false">
+
+        <!-- Main entry point -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            MSAL BrowserTabActivity — required for interactive login redirect.
+            Replace YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE with the output of:
+              keytool -exportcert -alias androiddebugkey -keystore ~/.android/debug.keystore \
+                | openssl sha1 -binary | openssl base64
+        -->
+        <activity
+            android:name="com.microsoft.identity.client.BrowserTabActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="com.contoso.mdmtest"
+                    android:path="/YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE"
+                    android:scheme="msauth" />
+            </intent-filter>
+        </activity>
+
+        <!-- MAM notification receiver — handles policy/wipe notifications -->
+        <receiver
+            android:name="com.microsoft.intune.mam.client.app.MAMDefaultNotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.microsoft.intune.mam.policy.MAM_ENROLLMENT_RESULT" />
+                <action android:name="com.microsoft.intune.mam.policy.WIPE_USER_DATA" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

@@ -1,0 +1,17 @@
+{
+  "client_id": "YOUR_ENTRA_APP_CLIENT_ID",
+  "authorization_user_agent": "DEFAULT",
+  "redirect_uri": "msauth://com.contoso.mdmtest/YOUR_BASE64_ENCODED_PACKAGE_SIGNATURE",
+  "broker_redirect_uri_registered": true,
+  "client_capabilities": ["ProtApp"],
+  "account_mode": "SINGLE",
+  "authorities": [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADMyOrg",
+        "tenant_id": "YOUR_TENANT_ID"
+      }
+    }
+  ]
+}

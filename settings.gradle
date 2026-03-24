@@ -1,0 +1,25 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        // Intune MAM SDK — requires access to Microsoft's Azure DevOps Maven feed
+        // See README > Prerequisites > Step 3 for credentials setup
+        maven {
+            url = uri("https://pkgs.dev.azure.com/MicrosoftDeviceSDKs/DeviceSDKs/_packaging/Intune/maven/v1")
+            credentials {
+                username = System.getenv("INTUNE_MAVEN_USER") ?: ""
+                password = System.getenv("INTUNE_MAVEN_TOKEN") ?: ""
+            }
+        }
+    }
+}
+rootProject.name = "MdmTest"
+include(":app")
